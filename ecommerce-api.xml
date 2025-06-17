@@ -1,0 +1,350 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+app/
+  api/
+    routers/
+      products.py
+  core/
+    config.py
+  db/
+    database.py
+    models.py
+    test_db.py
+  main.py
+.gitignore
+pyproject.toml
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="app/api/routers/products.py">
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy import create_engine, Column, Integer, String, Float, JSON, Identity
+from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.ext.declarative import declarative_base
+from typing import List
+
+DATABASE_URL = "postgresql://ecommerce:Zeus_3245@localhost/ecommerce"
+</file>
+
+<file path="app/db/test_db.py">
+from sqlalchemy import select, insert, delete, update
+from app.db.database import get_engine, create_tables
+from app.db.models import products_core, users_core, orders_core, order_items
+
+def setup_database():
+    create_tables()
+
+insert_stmt = insert(products_core).values(
+            name="Test Product",
+            description="A test product",
+            price=29.99
+        )
+
+multiple_insert_stmt = insert(products_core).values([
+        {
+            "name": "Gaming Laptop",
+            "description": "Laptop for Gaming",
+            "price": 1199.99
+        },
+        {
+            "name": "Work Laptop",
+            "description": "Laptop for Working",
+            "price": 399.99
+        },
+        {
+            "name": "Personal Laptop",
+            "description": "Laptop for Personal Matters",
+            "price": 599.99
+        }
+    ])
+
+update_stmt = update(products_core).where(products_core.c.id == 9).values(price=1099.99)
+
+delete_stmt = delete(products_core).where(products_core.c.name == "Test Product")
+
+select_stmt = select(products_core)
+
+# Exercises
+filter_stmt = select(products_core).where(products_core.c.price > 500)
+update_stmt = update(products_core).values(price=products_core.c.price*0.10 + products_core.c.price)
+
+def test(operation):
+    engine = get_engine()
+
+    with engine.connect() as connection:
+        connection.execute(operation)
+        connection.commit()
+        
+        result = connection.execute(select_stmt)
+        print("Products:")
+        for row in result:
+            print(row)
+
+if __name__ == "__main__":
+    # Run only once
+    setup_database()
+    # test(update_stmt)
+</file>
+
+<file path="app/core/config.py">
+from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+import os
+
+load_dotenv()  # Load environment variables from .env file
+
+class Settings(BaseSettings):
+    PROJECT_NAME: str = os.getenv("PROJECT_NAME", "E-Commerce API")
+    API_V1_STR: str = os.getenv("API_V1_STR", "/api/v1")
+    REDIS_HOST: str = os.getenv("REDIS_HOST", "TEMP_REDIST_HOST")
+    REDIS_PORT: str = os.getenv("REDIS_PORT", "TEMP_REDIST_PORT")
+    S3_BUCKET_NAME: str = os.getenv("S3_BUCKET_NAME", "TEMP_S3_BUCKET")
+
+    class Config:
+        case_sensitive = True
+
+settings = Settings()
+</file>
+
+<file path="app/db/database.py">
+from sqlalchemy import create_engine
+from app.db.models import metadata
+
+
+DATABASE_URL = "postgresql://mattheworga:Zeus_3245@localhost/ecommerce"
+
+engine = create_engine(DATABASE_URL)
+
+def create_tables():
+    metadata.create_all(engine)
+    print("Tables created successfully!")
+
+def get_engine():
+    return engine
+</file>
+
+<file path="app/db/models.py">
+from sqlalchemy import MetaData, Table, Column, Integer, String, Float, DateTime, ForeignKey, Boolean
+from sqlalchemy.sql import func
+
+metadata = MetaData()
+
+products_core = Table(
+    "products_core",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("name", String(255), nullable=False),
+    Column("price", Float, nullable=False),
+    Column("manufacturer", String, nullable=False),
+    Column("category", String, nullable=False),
+    Column("stock_quantity", Integer, default=0)
+)
+
+products_cpu = Table(
+    "products_cpu",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("product_id", Integer, ForeignKey("products_core.id")),
+    Column("core_count", Integer, default=1, nullable=False),
+    Column("clock_speed", Float, nullable=False),
+    Column("socket_type", String, nullable=False),
+    Column("tdp", Float, nullable=False), # Thermal Design Power in Watts
+)
+
+products_gpu = Table(
+    "products_gpu",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("product_id", Integer, ForeignKey("products_core.id")),
+    Column("memory", Integer, nullable=False),
+    Column("clock_speed", Float, nullable=False),
+    Column("boost_clock", Integer, nullable=True)
+)
+
+products_motherboard = Table(
+    "products_motherboard",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("product_id", Integer, ForeignKey("products_core.id")),
+    Column("socket_type", String, nullable=False),
+    Column("chipset", String, nullable=False),
+    Column("ram_slots", Integer, nullable=False),
+    Column("form_factor", String, nullable=True)
+)
+
+products_storage = Table(
+    "products_storage",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("product_id", Integer, ForeignKey("products_core.id")),
+    Column("capacity", Integer, nullable=False),
+    Column("interface", String, nullable=False),
+    Column("form_factor", String, nullable=False),
+    Column("read_speed", Integer, nullable=True), # SSDs
+    Column("write_speed", Integer, nullable=True), # SSDs
+    Column("rpm", Integer, nullable=True), # HDDs
+    Column("cache_size", Integer, nullable=True),
+)
+
+products_power = Table(
+    "products_power",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("product_id", Integer, ForeignKey("products_core.id")),
+    Column("wattage", Integer, nullable=False),
+    Column("efficiency_rating", String),
+    Column("modular_type", String),
+    Column("form_factor", String, nullable=False),
+    Column("pcie_connectors", Integer),
+    Column("sata_connectors", Integer),
+)
+
+
+users_core = Table(
+    "users_core",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("username", String(50), unique=True, nullable=False),
+    Column("email", String(100), unique=True, nullable=False),
+    Column("hashed_password", String(255), nullable=False),
+    Column("first_name", String(50), nullable=True),
+    Column("last_name", String(50), nullable=True),
+    Column("registration_date", DateTime(timezone=True), server_default=func.now()),
+    Column("phone_number", String(9), nullable=True),
+    Column("is_superuser", Boolean, nullable=False),
+)
+
+users_shipping = Table(
+    "users_shipping",
+    metadata,
+    Column("id", Integer, ForeignKey("users_core.id"), primary_key=True),
+    Column("street", String),
+    Column("city", String),
+    Column("state", String(5)),
+    Column("zipcode", String),
+)
+
+users_billing = Table(
+    "users_billing",
+    metadata,
+    Column("id", Integer, ForeignKey("users_core.id"), primary_key=True),
+    Column("street", String),
+    Column("city", String),
+    Column("state", String(5)),
+    Column("zipcode", String),
+)
+
+orders_core = Table(
+    "orders_core",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("user_id", Integer, ForeignKey("users_core.id"), nullable=False),
+    Column("order_date", DateTime(timezone=True), server_default=func.now()),
+    Column("total_amount", Float, nullable=False),
+    Column("order_status", String, default="pending"),
+    Column("shipping_address_id", Integer, ForeignKey("users_shipping.id")),
+    Column("billing_address_id", Integer, ForeignKey("users_billing.id")),
+)
+
+order_items = Table(
+    "order_items",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("order_id", Integer, ForeignKey("orders_core.id"), nullable=False),
+    Column("product_id", Integer, ForeignKey("products_core.id"), nullable=False),
+    Column("quantity", Integer, nullable=False),
+    Column("price", Float, nullable=False),
+)
+
+order_payment = Table(
+    "order_payment",
+    metadata,
+    Column("id", Integer, ForeignKey("orders_core.id"), primary_key=True, nullable=False),
+    Column("transaction_id", String, nullable=False),
+    Column("payment_method", String, nullable=False),
+)
+</file>
+
+<file path="pyproject.toml">
+[project]
+name = "E-Commerce API"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Matthew Orga",email = "mattheworga85@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+</file>
+
+<file path="app/main.py">
+from fastapi import FastAPI
+from app.core.config import settings
+from app.api.routers import products
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+)
+
+# print(f"Redist Host: {settings.REDIS_HOST}")
+# print(f"Redist Port: {settings.REDIS_PORT}")
+# print(f"S3 Bucket Name: {settings.S3_BUCKET_NAME}")
+</file>
+
+<file path=".gitignore">
+.DS_Store
+.venv
+__pycache__
+.env
+</file>
+
+</files>
